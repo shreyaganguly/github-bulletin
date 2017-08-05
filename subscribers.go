@@ -1,16 +1,15 @@
 package main
 
-import "errors"
+import "fmt"
 
 func addSubscriber(slackUserID, githubUserID string) {
 	subscribers[slackUserID] = githubUserID
 }
 
-func removeSubscriber(slackUserID string) error {
-	_, ok := subscribers[slackUserID]
-	if ok {
-		delete(subscribers, slackUserID)
-		return nil
+func removeSubscriber(slackUserID, githubUserID string) error {
+	if subscribers[slackUserID] != githubUserID {
+		return fmt.Errorf("You never subscribed with %s", githubUserID)
 	}
-	return errors.New("You never subscribed")
+	delete(subscribers, slackUserID)
+	return nil
 }

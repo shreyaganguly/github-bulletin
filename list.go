@@ -17,7 +17,7 @@ func CreateFilterOptions() *github.IssueListOptions {
 func findIssues(filterOptions *github.IssueListOptions) (issueList []*github.Issue, err error) {
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: *accessToken},
+		&oauth2.Token{AccessToken: *githubToken},
 	)
 	tc := oauth2.NewClient(ctx, ts)
 
