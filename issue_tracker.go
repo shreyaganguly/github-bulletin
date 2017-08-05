@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -114,7 +115,6 @@ func findDifference(old, new []*github.Issue) {
 			} else {
 				fmt.Printf("A new issue is added: %s", new[i].GetHTMLURL())
 			}
-
 		}
 	}
 }
@@ -134,8 +134,9 @@ func issueFramework() {
 	issues, err := findIssues(filterOptions)
 	if err != nil {
 		fmt.Println("Github Bulletin Error: Error in listing by organization ", err)
-		return
+		os.Exit(0)
 	}
+	print(issues)
 	for _, value := range subscribers {
 		issuesOfSubscriberNew := findIssuesByAssignee(issues, value)
 		findDifference(issuesOfSubscriberNew, subsriberIssueMap[value])

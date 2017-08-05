@@ -16,7 +16,7 @@ var subsriberIssueMap map[string][]*github.Issue
 func main() {
 	flag.Parse()
 	subscribers = make(map[string]string)
-	subscribers["test-slack-name"] = "test-github-id"
+	subscribers["test-slack-name"] = "ppm-shreya"
 	subsriberIssueMap = make(map[string][]*github.Issue)
 	giveNotification()
 }
