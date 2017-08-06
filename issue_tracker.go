@@ -10,7 +10,7 @@ import (
 )
 
 func giveNotification() {
-	ticker := time.NewTicker(time.Second * 120)
+	ticker := time.NewTicker(time.Second * 10)
 	defer ticker.Stop()
 	for range ticker.C {
 		go issueFramework()
@@ -71,57 +71,61 @@ func compareAssignees(oldAssignees, newAssignees []*github.User) ([]string, []st
 	return added, removed
 }
 
-func findDifference(old, new []*github.Issue) {
+func findDifference(old, new []*github.Issue) string {
 	var i int
+	var message string
 	if len(old) != 0 {
 		for i = 0; i < len(new); i++ {
 			if len(old) > i {
 				if old[i].GetNumber() == new[i].GetNumber() {
 					if old[i].GetState() != new[i].GetState() {
-						fmt.Printf("The state changed for this issue : %s", new[i].GetHTMLURL())
+						message = fmt.Sprintf("\n%s\nThe state changed for this issue : %s", message, new[i].GetHTMLURL())
 					}
 					if old[i].GetBody() != new[i].GetBody() {
-						fmt.Printf("The body changed for this issue : %s", new[i].GetHTMLURL())
+						message = fmt.Sprintf("\n%s\nThe body changed for this issue : %s", message, new[i].GetHTMLURL())
 					}
 					if old[i].GetTitle() != new[i].GetTitle() {
-						fmt.Printf("The title changed for this issue : %s", new[i].GetHTMLURL())
+						message = fmt.Sprintf("\n%s\nThe title changed for this issue : %s", message, new[i].GetHTMLURL())
 					}
 					if old[i].GetClosedAt() != new[i].GetClosedAt() {
-						fmt.Printf("Issue got closed by %s", new[i].ClosedBy.GetLogin())
+						message = fmt.Sprintf("\n%s\nIssue got closed by %s", message, new[i].ClosedBy.GetLogin())
 					}
 					if old[i].Milestone != nil && new[i].Milestone != nil && old[i].Milestone.GetTitle() != new[i].Milestone.GetTitle() {
-						fmt.Printf("The milestone changed for this issue : %s", new[i].GetHTMLURL())
+						message = fmt.Sprintf("\n%s\nThe milestone changed for this issue : %s", message, new[i].GetHTMLURL())
 					}
 					if old[i].Milestone == nil && new[i].Milestone != nil {
-						fmt.Printf("%s milestone added for this issue : %s", new[i].Milestone.GetTitle(), new[i].GetHTMLURL())
+						message = fmt.Sprintf("\n%s\n%s milestone added for this issue : %s", message, new[i].Milestone.GetTitle(), new[i].GetHTMLURL())
 					}
 					addedLabels, removedLabels := compareLabels(old[i].Labels, new[i].Labels)
 					if len(addedLabels) != 0 {
-						fmt.Printf("The following labels were added for this issue : %s,%s", new[i].GetHTMLURL(), strings.Join(addedLabels, ","))
+						message = fmt.Sprintf("\n%s\nThe following labels were added for this issue : %s,%s", message, new[i].GetHTMLURL(), strings.Join(addedLabels, ","))
 					}
 					if len(removedLabels) != 0 {
-						fmt.Printf("The following labels were removed for this issue : %s,%s", new[i].GetHTMLURL(), strings.Join(removedLabels, ","))
+						message = fmt.Sprintf("\n%s\nThe following labels were removed for this issue : %s,%s", message, new[i].GetHTMLURL(), strings.Join(removedLabels, ","))
 					}
 
 					addedAssignees, removedAssignees := compareAssignees(old[i].Assignees, new[i].Assignees)
 					if len(addedAssignees) != 0 {
-						fmt.Printf("The following assignees were added for this issue : %s,%s", new[i].GetHTMLURL(), strings.Join(addedAssignees, ","))
+						message = fmt.Sprintf("\n%s\nThe following assignees were added for this issue : %s,%s", message, new[i].GetHTMLURL(), strings.Join(addedAssignees, ","))
 					}
 					if len(removedAssignees) != 0 {
-						fmt.Printf("The following assignees were removed for this issue : %s,%s", new[i].GetHTMLURL(), strings.Join(removedAssignees, ","))
+						message = fmt.Sprintf("\n%s\nThe following assignees were removed for this issue : %s,%s", message, new[i].GetHTMLURL(), strings.Join(removedAssignees, ","))
 					}
 				}
 
 			} else {
-				fmt.Printf("A new issue is added: %s", new[i].GetHTMLURL())
+				message = fmt.Sprintf("\n%s\nA new issue is added: %s", message, new[i].GetHTMLURL())
 			}
 		}
 	}
+	fmt.Println("Mssage is ", message)
+	return message
 }
 
 func findIssuesByAssignee(issues []*github.Issue, assignee string) (subscriberIssues []*github.Issue) {
 	for _, issue := range issues {
-		if issue.Assignee.GetLogin() == assignee {
+		fmt.Println(issue.GetTitle(), issue.Assignee.GetLogin())
+		if issue.Assignee != nil && issue.Assignee.GetLogin() == assignee {
 			subscriberIssues = append(subscriberIssues, issue)
 		}
 	}
@@ -136,10 +140,17 @@ func issueFramework() {
 		fmt.Println("Github Bulletin Error: Error in listing by organization ", err)
 		os.Exit(0)
 	}
-	print(issues)
-	for _, value := range subscribers {
+	for key, value := range subscribers {
 		issuesOfSubscriberNew := findIssuesByAssignee(issues, value)
-		findDifference(issuesOfSubscriberNew, subsriberIssueMap[value])
+		message := findDifference(subsriberIssueMap[value], issuesOfSubscriberNew)
+		if message != "" {
+			err := postMessage(key, message)
+			if err != nil {
+				fmt.Println("Github Bulletin Error: Slack Error in posting message ", err)
+				os.Exit(0)
+			}
+		}
+		subsriberIssueMap[value] = make([]*github.Issue, len(issuesOfSubscriberNew))
 		copy(subsriberIssueMap[value], issuesOfSubscriberNew)
 	}
 

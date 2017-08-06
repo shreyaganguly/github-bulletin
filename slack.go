@@ -2,54 +2,65 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"os"
 	"strings"
 
 	"github.com/nlopes/slack"
 )
 
+var api *slack.Client
+
+func postMessage(user, msg string) error {
+	channelID, timestamp, err := api.PostMessage(user, msg, slack.PostMessageParameters{})
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Message successfully sent to channel %s at %s\n", channelID, timestamp)
+	return nil
+}
+
 func SubscribeUser(api *slack.Client, msg slack.Msg) error {
 	msgArray := strings.Split(msg.Text, ":")
-	fmt.Println("msgArray is", len(msgArray))
 	if len(msgArray) == 2 {
 		githubUserID := strings.Trim(msgArray[1], " ")
 		addSubscriber(msg.User, githubUserID)
-		channelID, timestamp, err := api.PostMessage(msg.User, fmt.Sprintf("Successfully Subscribed %s to github bulletin. To unsubsribe Write \"Unsubscribe: <Your github User ID>\"", githubUserID), slack.PostMessageParameters{})
+		err := postMessage(msg.User, fmt.Sprintf("Successfully Subscribed %s to github bulletin. To unsubsribe Write \"Unsubscribe: %s\"", githubUserID, githubUserID))
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Message successfully sent to channel %s at %s\n", channelID, timestamp)
 	} else {
-		channelID, timestamp, err := api.PostMessage(msg.User, "Oops!! Not Successfully Subscribed to bulletin. Write \"Subscribe: <Your github User ID>\"", slack.PostMessageParameters{})
+		err := postMessage(msg.User, "Oops!! Not Successfully Subscribed to bulletin. Write \"Subscribe: <Your github User ID>\"")
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Message successfully sent to channel %s at %s\n", channelID, timestamp)
 	}
 	return nil
 }
 
 func UnsubscribeUser(api *slack.Client, msg slack.Msg) error {
 	msgArray := strings.Split(msg.Text, ":")
-	fmt.Println("msgArray is", len(msgArray))
 	if len(msgArray) == 2 {
 		githubUserID := strings.Trim(msgArray[1], " ")
-		removeSubscriber(msg.User, githubUserID)
-		channelID, timestamp, err := api.PostMessage(msg.User, fmt.Sprintf("Successfully Unsubscribed %s from github bulletin. To subscribe again Write \"Subscribe: <Your github User ID>\"", githubUserID), slack.PostMessageParameters{})
+		errSubscriber := removeSubscriber(msg.User, githubUserID)
+		if errSubscriber != nil {
+			err := postMessage(msg.User, errSubscriber.Error())
+			if err != nil {
+				return err
+			}
+			return nil
+		}
+		err := postMessage(msg.User, fmt.Sprintf("Successfully Unsubscribed %s from github bulletin. To subscribe again Write \"Subscribe: %s\"", githubUserID, githubUserID))
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Message successfully sent to channel %s at %s\n", channelID, timestamp)
 	} else {
-		channelID, timestamp, err := api.PostMessage(msg.User, "Oops!! Not Successfully Unubscribed to bulletin. Write \"Subscribe: <Your github User ID>\"", slack.PostMessageParameters{})
+		err := postMessage(msg.User, "Oops!! Not Successfully Unubscribed to bulletin. Write \"Subscribe: <Your github User ID>\"")
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Message successfully sent to channel %s at %s\n", channelID, timestamp)
 	}
 	return nil
 }
+
 func parseMessage(api *slack.Client, msg slack.Msg) {
 	if strings.HasPrefix(msg.Text, "Subscribe: ") {
 		err := SubscribeUser(api, msg)
@@ -64,21 +75,21 @@ func parseMessage(api *slack.Client, msg slack.Msg) {
 			return
 		}
 	} else {
-		channelID, timestamp, err := api.PostMessage(msg.User, "You can write here. But I understand only \"Subscribe: <Your github User ID>\" and \"Unsubscribe: <Your github User ID>\" . Enjoy!", slack.PostMessageParameters{})
+		err := postMessage(msg.User, "You can write here. But I understand only \"Subscribe: <Your github User ID>\" and \"Unsubscribe: <Your github User ID>\" . Enjoy!")
 		if err != nil {
 			fmt.Printf("Github-Bulletin : Slack Error %s", err.Error())
 			return
 		}
-		fmt.Printf("Message successfully sent to channel %s at %s\n", channelID, timestamp)
 	}
 
 }
 
 func configureSlack() {
-	api := slack.New(*slackToken)
-	logger := log.New(os.Stdout, "slack-bot: ", log.Lshortfile|log.LstdFlags)
-	slack.SetLogger(logger)
-	api.SetDebug(true)
+	api = slack.New(*slackToken)
+
+	// logger := log.New(os.Stdout, "slack-bot: ", log.Lshortfile|log.LstdFlags)
+	// slack.SetLogger(logger)
+	// api.SetDebug(true)
 
 	rtm := api.NewRTM()
 	go rtm.ManageConnection()
@@ -90,12 +101,7 @@ func configureSlack() {
 			fmt.Printf("Message: %v\n", ev.Msg.User)
 			fmt.Println("Messgae is ", ev.Msg.Text)
 			parseMessage(api, ev.Msg)
-			// return
-
 		default:
-
-			// Ignore other events..
-			// fmt.Printf("Unexpected: %v\n", msg.Data)
 		}
 	}
 }
