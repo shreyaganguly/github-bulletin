@@ -71,45 +71,56 @@ func compareAssignees(oldAssignees, newAssignees []*github.User) ([]string, []st
 	return added, removed
 }
 
+func reverse(issues []*github.Issue) []*github.Issue {
+	for i, j := 0, len(issues)-1; i < j; i, j = i+1, j-1 {
+		issues[i], issues[j] = issues[j], issues[i]
+	}
+	return issues
+}
+
 func findDifference(old, new []*github.Issue) string {
 	var i int
 	var message string
+	// j := 0
 	if len(old) != 0 {
 		for i = 0; i < len(new); i++ {
 			if len(old) > i {
 				if old[i].GetNumber() == new[i].GetNumber() {
 					if old[i].GetState() != new[i].GetState() {
-						message = fmt.Sprintf("\n%s\nThe state changed for this issue : %s", message, new[i].GetHTMLURL())
+						message = fmt.Sprintf("\n%s\nThe state changed for this issue : %s, changed from \"%s\" to \"%s\"", message, new[i].GetHTMLURL(), old[i].GetState(), new[i].GetState())
 					}
 					if old[i].GetBody() != new[i].GetBody() {
-						message = fmt.Sprintf("\n%s\nThe body changed for this issue : %s", message, new[i].GetHTMLURL())
+						message = fmt.Sprintf("\n%s\nThe body changed for this issue : %s, changed from \"%s\" to \"%s\"", message, new[i].GetHTMLURL(), old[i].GetBody(), new[i].GetBody())
 					}
 					if old[i].GetTitle() != new[i].GetTitle() {
-						message = fmt.Sprintf("\n%s\nThe title changed for this issue : %s", message, new[i].GetHTMLURL())
+						message = fmt.Sprintf("\n%s\nThe title changed for this issue : %s, changed from \"%s\" to \"%s\"", message, new[i].GetHTMLURL(), old[i].GetTitle(), new[i].GetTitle())
 					}
 					if old[i].GetClosedAt() != new[i].GetClosedAt() {
 						message = fmt.Sprintf("\n%s\nIssue got closed by %s", message, new[i].ClosedBy.GetLogin())
 					}
 					if old[i].Milestone != nil && new[i].Milestone != nil && old[i].Milestone.GetTitle() != new[i].Milestone.GetTitle() {
-						message = fmt.Sprintf("\n%s\nThe milestone changed for this issue : %s", message, new[i].GetHTMLURL())
+						message = fmt.Sprintf("\n%s\nThe milestone changed for this issue : %s, changed from \"%s\" to \"%s\"", message, new[i].GetHTMLURL(), old[i].Milestone.GetTitle(), new[i].Milestone.GetTitle())
 					}
 					if old[i].Milestone == nil && new[i].Milestone != nil {
 						message = fmt.Sprintf("\n%s\n%s milestone added for this issue : %s", message, new[i].Milestone.GetTitle(), new[i].GetHTMLURL())
 					}
+					if old[i].Milestone != nil && new[i].Milestone == nil {
+						message = fmt.Sprintf("\n%s\n%s milestone removed for this issue : %s", message, old[i].Milestone.GetTitle(), new[i].GetHTMLURL())
+					}
 					addedLabels, removedLabels := compareLabels(old[i].Labels, new[i].Labels)
 					if len(addedLabels) != 0 {
-						message = fmt.Sprintf("\n%s\nThe following labels were added for this issue : %s,%s", message, new[i].GetHTMLURL(), strings.Join(addedLabels, ","))
+						message = fmt.Sprintf("\n%s\nThe following labels were added for this issue : %s, %s", message, new[i].GetHTMLURL(), strings.Join(addedLabels, ","))
 					}
 					if len(removedLabels) != 0 {
-						message = fmt.Sprintf("\n%s\nThe following labels were removed for this issue : %s,%s", message, new[i].GetHTMLURL(), strings.Join(removedLabels, ","))
+						message = fmt.Sprintf("\n%s\nThe following labels were removed for this issue : %s, %s", message, new[i].GetHTMLURL(), strings.Join(removedLabels, ","))
 					}
 
 					addedAssignees, removedAssignees := compareAssignees(old[i].Assignees, new[i].Assignees)
 					if len(addedAssignees) != 0 {
-						message = fmt.Sprintf("\n%s\nThe following assignees were added for this issue : %s,%s", message, new[i].GetHTMLURL(), strings.Join(addedAssignees, ","))
+						message = fmt.Sprintf("\n%s\nThe following assignees were added for this issue : %s, %s", message, new[i].GetHTMLURL(), strings.Join(addedAssignees, ","))
 					}
 					if len(removedAssignees) != 0 {
-						message = fmt.Sprintf("\n%s\nThe following assignees were removed for this issue : %s,%s", message, new[i].GetHTMLURL(), strings.Join(removedAssignees, ","))
+						message = fmt.Sprintf("\n%s\nThe following assignees were removed for this issue : %s, %s", message, new[i].GetHTMLURL(), strings.Join(removedAssignees, ","))
 					}
 				}
 
@@ -118,13 +129,11 @@ func findDifference(old, new []*github.Issue) string {
 			}
 		}
 	}
-	fmt.Println("Mssage is ", message)
 	return message
 }
 
 func findIssuesByAssignee(issues []*github.Issue, assignee string) (subscriberIssues []*github.Issue) {
 	for _, issue := range issues {
-		fmt.Println(issue.GetTitle(), issue.Assignee.GetLogin())
 		if issue.Assignee != nil && issue.Assignee.GetLogin() == assignee {
 			subscriberIssues = append(subscriberIssues, issue)
 		}
@@ -142,6 +151,7 @@ func issueFramework() {
 	}
 	for key, value := range subscribers {
 		issuesOfSubscriberNew := findIssuesByAssignee(issues, value)
+		issuesOfSubscriberNew = reverse(issuesOfSubscriberNew)
 		message := findDifference(subsriberIssueMap[value], issuesOfSubscriberNew)
 		if message != "" {
 			err := postMessage(key, message)
