@@ -18,7 +18,7 @@ func postMessage(user, msg string) error {
 	return nil
 }
 
-func SubscribeUser(api *slack.Client, msg slack.Msg) error {
+func subscribeUser(api *slack.Client, msg slack.Msg) error {
 	msgArray := strings.Split(msg.Text, ":")
 	if len(msgArray) == 2 {
 		githubUserID := strings.Trim(msgArray[1], " ")
@@ -36,7 +36,7 @@ func SubscribeUser(api *slack.Client, msg slack.Msg) error {
 	return nil
 }
 
-func UnsubscribeUser(api *slack.Client, msg slack.Msg) error {
+func unsubscribeUser(api *slack.Client, msg slack.Msg) error {
 	msgArray := strings.Split(msg.Text, ":")
 	if len(msgArray) == 2 {
 		githubUserID := strings.Trim(msgArray[1], " ")
@@ -63,13 +63,13 @@ func UnsubscribeUser(api *slack.Client, msg slack.Msg) error {
 
 func parseMessage(api *slack.Client, msg slack.Msg) {
 	if strings.HasPrefix(msg.Text, "Subscribe: ") {
-		err := SubscribeUser(api, msg)
+		err := subscribeUser(api, msg)
 		if err != nil {
 			fmt.Printf("Github-Bulletin : Slack Error %s", err.Error())
 			return
 		}
 	} else if strings.HasPrefix(msg.Text, "Unsubscribe: ") {
-		err := UnsubscribeUser(api, msg)
+		err := unsubscribeUser(api, msg)
 		if err != nil {
 			fmt.Printf("Github-Bulletin : Slack Error %s", err.Error())
 			return
@@ -86,16 +86,10 @@ func parseMessage(api *slack.Client, msg slack.Msg) {
 
 func configureSlack() {
 	api = slack.New(*slackToken)
-
-	// logger := log.New(os.Stdout, "slack-bot: ", log.Lshortfile|log.LstdFlags)
-	// slack.SetLogger(logger)
-	// api.SetDebug(true)
-
 	rtm := api.NewRTM()
 	go rtm.ManageConnection()
 
 	for msg := range rtm.IncomingEvents {
-		fmt.Print("Event Received: ")
 		switch ev := msg.Data.(type) {
 		case *slack.MessageEvent:
 			fmt.Printf("Message: %v\n", ev.Msg.User)

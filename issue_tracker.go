@@ -10,7 +10,8 @@ import (
 )
 
 func giveNotification() {
-	ticker := time.NewTicker(time.Second * 10)
+	timeInterval, _ := time.ParseDuration(fmt.Sprintf("%ds", *timePeriod))
+	ticker := time.NewTicker(timeInterval)
 	defer ticker.Stop()
 	for range ticker.C {
 		go issueFramework()
@@ -81,7 +82,6 @@ func reverse(issues []*github.Issue) []*github.Issue {
 func findDifference(old, new []*github.Issue) string {
 	var i int
 	var message string
-	// j := 0
 	if len(old) != 0 {
 		for i = 0; i < len(new); i++ {
 			if len(old) > i {
@@ -125,7 +125,7 @@ func findDifference(old, new []*github.Issue) string {
 				}
 
 			} else {
-				message = fmt.Sprintf("\n%s\nA new issue is added: %s", message, new[i].GetHTMLURL())
+				message = fmt.Sprintf("\n%s\nA new issue is added: %s by %s", message, new[i].GetHTMLURL(), new[i].User.GetLogin())
 			}
 		}
 	}
@@ -142,7 +142,6 @@ func findIssuesByAssignee(issues []*github.Issue, assignee string) (subscriberIs
 }
 
 func issueFramework() {
-	fmt.Println("Hello World")
 	filterOptions := CreateFilterOptions()
 	issues, err := findIssues(filterOptions)
 	if err != nil {
