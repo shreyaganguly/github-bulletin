@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/google/go-github/github"
 	"github.com/nlopes/slack"
 )
 
@@ -22,7 +23,8 @@ func subscribeUser(api *slack.Client, msg slack.Msg) error {
 	msgArray := strings.Split(msg.Text, ":")
 	if len(msgArray) == 2 {
 		githubUserID := strings.Trim(msgArray[1], " ")
-		addSubscriber(msg.User, githubUserID)
+		s := &Subscription{githubUserID, msg.User, []*github.Issue{}}
+		s.addSubscriber()
 		err := postMessage(msg.User, fmt.Sprintf("Successfully Subscribed %s to github bulletin. To unsubsribe Write \"Unsubscribe: %s\"", githubUserID, githubUserID))
 		if err != nil {
 			return err
@@ -40,7 +42,8 @@ func unsubscribeUser(api *slack.Client, msg slack.Msg) error {
 	msgArray := strings.Split(msg.Text, ":")
 	if len(msgArray) == 2 {
 		githubUserID := strings.Trim(msgArray[1], " ")
-		errSubscriber := removeSubscriber(msg.User, githubUserID)
+		s := &Subscription{githubUserID, msg.User, []*github.Issue{}}
+		errSubscriber := s.removeSubscriber()
 		if errSubscriber != nil {
 			err := postMessage(msg.User, errSubscriber.Error())
 			if err != nil {

@@ -2,8 +2,7 @@ package main
 
 import (
 	"flag"
-
-	"github.com/google/go-github/github"
+	"fmt"
 )
 
 var (
@@ -12,16 +11,10 @@ var (
 	organization = flag.String("org", "", "Organization for which issues are to be fetched")
 	timePeriod   = flag.Int64("t", 180, "Time interval in seconds after which issues will be fetched")
 )
-var subscribers map[string]string
-var subsriberIssueMap map[string][]*github.Issue
 
 func main() {
 	flag.Parse()
-	subscribers = make(map[string]string)
-	subsriberIssueMap = make(map[string][]*github.Issue)
-	go func() {
-		giveNotification()
-	}()
-
+	fmt.Println("Starting the bulletin")
+	go giveNotification()
 	configureSlack()
 }

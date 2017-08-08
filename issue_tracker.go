@@ -20,54 +20,38 @@ func giveNotification() {
 
 func compareLabels(oldLabels, newLabels []github.Label) ([]string, []string) {
 	var added, removed []string
-	for i := 0; i < len(newLabels); i++ {
-		found := 0
-		for j := 0; j < len(oldLabels); j++ {
-			if newLabels[i].GetName() == oldLabels[j].GetName() {
-				found = 1
-			}
-		}
-		if found == 0 {
-			added = append(added, newLabels[i].GetName())
+	newMap := make(map[string]int)
+	for _, newLabel := range newLabels {
+		newMap[newLabel.GetName()]++
+	}
+	for _, oldLabel := range oldLabels {
+		if newMap[oldLabel.GetName()] > 0 {
+			delete(newMap, oldLabel.GetName())
+		} else {
+			removed = append(removed, oldLabel.GetName())
 		}
 	}
-	for i := 0; i < len(oldLabels); i++ {
-		found := 0
-		for j := 0; j < len(newLabels); j++ {
-			if newLabels[j].GetName() == oldLabels[i].GetName() {
-				found = 1
-			}
-		}
-		if found == 0 {
-			removed = append(removed, oldLabels[i].GetName())
-		}
+	for addedLabel := range newMap {
+		added = append(added, addedLabel)
 	}
 	return added, removed
 }
 
 func compareAssignees(oldAssignees, newAssignees []*github.User) ([]string, []string) {
 	var added, removed []string
-	for i := 0; i < len(newAssignees); i++ {
-		found := 0
-		for j := 0; j < len(oldAssignees); j++ {
-			if newAssignees[i].GetName() == oldAssignees[j].GetName() {
-				found = 1
-			}
-		}
-		if found == 0 {
-			added = append(added, newAssignees[i].GetName())
+	newMap := make(map[string]int)
+	for _, newAssignee := range newAssignees {
+		newMap[newAssignee.GetName()]++
+	}
+	for _, oldAssignee := range oldAssignees {
+		if newMap[oldAssignee.GetName()] > 0 {
+			delete(newMap, oldAssignee.GetName())
+		} else {
+			removed = append(removed, oldAssignee.GetName())
 		}
 	}
-	for i := 0; i < len(oldAssignees); i++ {
-		found := 0
-		for j := 0; j < len(newAssignees); j++ {
-			if newAssignees[j].GetName() == oldAssignees[i].GetName() {
-				found = 1
-			}
-		}
-		if found == 0 {
-			removed = append(removed, oldAssignees[i].GetName())
-		}
+	for addedAssignee := range newMap {
+		added = append(added, addedAssignee)
 	}
 	return added, removed
 }
@@ -148,19 +132,19 @@ func issueFramework() {
 		fmt.Println("Github Bulletin Error: Error in listing by organization ", err)
 		os.Exit(0)
 	}
-	for key, value := range subscribers {
-		issuesOfSubscriberNew := findIssuesByAssignee(issues, value)
+	for _, subscription := range subscriptionList {
+		issuesOfSubscriberNew := findIssuesByAssignee(issues, subscription.GithubUserID)
 		issuesOfSubscriberNew = reverse(issuesOfSubscriberNew)
-		message := findDifference(subsriberIssueMap[value], issuesOfSubscriberNew)
+		message := findDifference(subscription.Issues, issuesOfSubscriberNew)
 		if message != "" {
-			err := postMessage(key, message)
+			err := postMessage(subscription.SlackUserID, message)
 			if err != nil {
 				fmt.Println("Github Bulletin Error: Slack Error in posting message ", err)
 				os.Exit(0)
 			}
 		}
-		subsriberIssueMap[value] = make([]*github.Issue, len(issuesOfSubscriberNew))
-		copy(subsriberIssueMap[value], issuesOfSubscriberNew)
+		subscription.Issues = make([]*github.Issue, len(issuesOfSubscriberNew))
+		copy(subscription.Issues, issuesOfSubscriberNew)
 	}
 
 }
