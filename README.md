@@ -18,4 +18,7 @@ $ github-bulletin -github-token <github-token-that-will-fetch-the-issues> -slack
 * The Github Token you will be providing in the flag to set up the application must have access to the organization to fetch the issues.
 * Give `t` value atleast more than 60 seconds.(I hope your code does not produce issues at this high rate! ;) )
 
+
+* Once the application is up, write: `Subsribe: <github-user-id>` to the slack bot registered with the server to recieve all issue tracking notifications.You can write `Unsubscribe: <github-user-id>` to unsubscribe anytime.
+
 #### Send bulletins and keep you and your friends all updated! :)
