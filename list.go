@@ -25,6 +25,7 @@ func findIssues(filterOptions *github.IssueListOptions) (issueList []*github.Iss
 	i := 1
 	for {
 		filterOptions.ListOptions.Page = i
+		filterOptions.Direction = "asc"
 		issues, _, err := client.Issues.ListByOrg(ctx, *organization, filterOptions)
 		if err != nil {
 			return nil, err

@@ -18,49 +18,61 @@ func giveNotification() {
 	}
 }
 
-func compareLabels(oldLabels, newLabels []github.Label) ([]string, []string) {
-	var added, removed []string
-	newMap := make(map[string]int)
-	for _, newLabel := range newLabels {
-		newMap[newLabel.GetName()]++
+func mapper() func(string) map[string]int {
+	entityMap := make(map[string]int)
+	return func(x string) map[string]int {
+		entityMap[x]++
+		return entityMap
 	}
-	for _, oldLabel := range oldLabels {
-		if newMap[oldLabel.GetName()] > 0 {
-			delete(newMap, oldLabel.GetName())
+}
+
+func comparer(m map[string]int) func(string) []string {
+	var diff []string
+	return func(x string) []string {
+		if m[x] > 0 {
+			delete(m, x)
 		} else {
-			removed = append(removed, oldLabel.GetName())
+			diff = append(diff, x)
 		}
+		return diff
 	}
-	for addedLabel := range newMap {
-		added = append(added, addedLabel)
+}
+
+func addedEntity(m map[string]int) []string {
+	var added []string
+	for v := range m {
+		added = append(added, v)
 	}
-	return added, removed
+	return added
+}
+
+func compareLabels(oldLabels, newLabels []github.Label) ([]string, []string) {
+	var removed []string
+	newMap := make(map[string]int)
+	m := mapper()
+	for _, newLabel := range newLabels {
+		newMap = m(newLabel.GetName())
+	}
+	d := comparer(newMap)
+	for _, oldLabel := range oldLabels {
+		removed = d(oldLabel.GetName())
+	}
+	return addedEntity(newMap), removed
 }
 
 func compareAssignees(oldAssignees, newAssignees []*github.User) ([]string, []string) {
-	var added, removed []string
+	var removed []string
+	m := mapper()
 	newMap := make(map[string]int)
 	for _, newAssignee := range newAssignees {
-		newMap[newAssignee.GetName()]++
+		newMap = m(newAssignee.GetName())
 	}
+	d := comparer(newMap)
 	for _, oldAssignee := range oldAssignees {
-		if newMap[oldAssignee.GetName()] > 0 {
-			delete(newMap, oldAssignee.GetName())
-		} else {
-			removed = append(removed, oldAssignee.GetName())
-		}
+		removed = d(oldAssignee.GetName())
 	}
-	for addedAssignee := range newMap {
-		added = append(added, addedAssignee)
-	}
-	return added, removed
-}
 
-func reverse(issues []*github.Issue) []*github.Issue {
-	for i, j := 0, len(issues)-1; i < j; i, j = i+1, j-1 {
-		issues[i], issues[j] = issues[j], issues[i]
-	}
-	return issues
+	return addedEntity(newMap), removed
 }
 
 func findDifference(old, new []*github.Issue) string {
@@ -112,6 +124,10 @@ func findDifference(old, new []*github.Issue) string {
 				message = fmt.Sprintf("\n%s\nA new issue is added: %s by %s", message, new[i].GetHTMLURL(), new[i].User.GetLogin())
 			}
 		}
+	} else {
+		for _, v := range new {
+			message = fmt.Sprintf("\n%s\nA new issue is added: %s by %s", message, v.GetHTMLURL(), v.User.GetLogin())
+		}
 	}
 	return message
 }
@@ -134,7 +150,6 @@ func issueFramework() {
 	}
 	for _, subscription := range subscriptionList {
 		issuesOfSubscriberNew := findIssuesByAssignee(issues, subscription.GithubUserID)
-		issuesOfSubscriberNew = reverse(issuesOfSubscriberNew)
 		message := findDifference(subscription.Issues, issuesOfSubscriberNew)
 		if message != "" {
 			err := postMessage(subscription.SlackUserID, message)
