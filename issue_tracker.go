@@ -98,35 +98,35 @@ func findDifference(old, new []*github.Issue) string {
 						message = fmt.Sprintf("\n%s\nThe milestone changed for this issue : %s, changed from \"%s\" to \"%s\"", message, new[i].GetHTMLURL(), old[i].Milestone.GetTitle(), new[i].Milestone.GetTitle())
 					}
 					if old[i].Milestone == nil && new[i].Milestone != nil {
-						message = fmt.Sprintf("\n%s\n%s milestone added for this issue : %s", message, new[i].Milestone.GetTitle(), new[i].GetHTMLURL())
+						message = fmt.Sprintf("\n%s\n\"%s\" milestone added for this issue : %s", message, new[i].Milestone.GetTitle(), new[i].GetHTMLURL())
 					}
 					if old[i].Milestone != nil && new[i].Milestone == nil {
-						message = fmt.Sprintf("\n%s\n%s milestone removed for this issue : %s", message, old[i].Milestone.GetTitle(), new[i].GetHTMLURL())
+						message = fmt.Sprintf("\n%s\n\"%s\" milestone removed for this issue : %s", message, old[i].Milestone.GetTitle(), new[i].GetHTMLURL())
 					}
 					addedLabels, removedLabels := compareLabels(old[i].Labels, new[i].Labels)
 					if len(addedLabels) != 0 {
-						message = fmt.Sprintf("\n%s\nThe following labels were added for this issue : %s, %s", message, new[i].GetHTMLURL(), strings.Join(addedLabels, ","))
+						message = fmt.Sprintf("\n%s\nThe following labels were added for this issue : %s, \"%s\"", message, new[i].GetHTMLURL(), strings.Join(addedLabels, ","))
 					}
 					if len(removedLabels) != 0 {
-						message = fmt.Sprintf("\n%s\nThe following labels were removed for this issue : %s, %s", message, new[i].GetHTMLURL(), strings.Join(removedLabels, ","))
+						message = fmt.Sprintf("\n%s\nThe following labels were removed for this issue : %s, \"%s\"", message, new[i].GetHTMLURL(), strings.Join(removedLabels, ","))
 					}
 
 					addedAssignees, removedAssignees := compareAssignees(old[i].Assignees, new[i].Assignees)
 					if len(addedAssignees) != 0 {
-						message = fmt.Sprintf("\n%s\nThe following assignees were added for this issue : %s, %s", message, new[i].GetHTMLURL(), strings.Join(addedAssignees, ","))
+						message = fmt.Sprintf("\n%s\nThe following assignees were added for this issue : %s, \"%s\"", message, new[i].GetHTMLURL(), strings.Join(addedAssignees, ","))
 					}
 					if len(removedAssignees) != 0 {
-						message = fmt.Sprintf("\n%s\nThe following assignees were removed for this issue : %s, %s", message, new[i].GetHTMLURL(), strings.Join(removedAssignees, ","))
+						message = fmt.Sprintf("\n%s\nThe following assignees were removed for this issue : %s, \"%s\"", message, new[i].GetHTMLURL(), strings.Join(removedAssignees, ","))
 					}
 				}
 
 			} else {
-				message = fmt.Sprintf("\n%s\nA new issue is added: %s by %s", message, new[i].GetHTMLURL(), new[i].User.GetLogin())
+				message = fmt.Sprintf("\n%s\nA new issue is added: %s by \"%s\"", message, new[i].GetHTMLURL(), new[i].User.GetLogin())
 			}
 		}
 	} else {
 		for _, v := range new {
-			message = fmt.Sprintf("\n%s\nA new issue is added: %s by %s", message, v.GetHTMLURL(), v.User.GetLogin())
+			message = fmt.Sprintf("\n%s\nA new issue is added: %s by \"%s\"", message, v.GetHTMLURL(), v.User.GetLogin())
 		}
 	}
 	return message
