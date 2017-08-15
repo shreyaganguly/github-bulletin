@@ -65,11 +65,11 @@ func compareAssignees(oldAssignees, newAssignees []*github.User) ([]string, []st
 	m := mapper()
 	newMap := make(map[string]int)
 	for _, newAssignee := range newAssignees {
-		newMap = m(newAssignee.GetName())
+		newMap = m(newAssignee.GetLogin())
 	}
 	d := comparer(newMap)
 	for _, oldAssignee := range oldAssignees {
-		removed = d(oldAssignee.GetName())
+		removed = d(oldAssignee.GetLogin())
 	}
 
 	return addedEntity(newMap), removed
@@ -115,6 +115,7 @@ func findDifference(old, new []*github.Issue) string {
 					if len(addedAssignees) != 0 {
 						message = fmt.Sprintf("\n%s\nThe following assignees were added for this issue : %s, \"%s\"", message, new[i].GetHTMLURL(), strings.Join(addedAssignees, ","))
 					}
+
 					if len(removedAssignees) != 0 {
 						message = fmt.Sprintf("\n%s\nThe following assignees were removed for this issue : %s, \"%s\"", message, new[i].GetHTMLURL(), strings.Join(removedAssignees, ","))
 					}
@@ -126,7 +127,9 @@ func findDifference(old, new []*github.Issue) string {
 		}
 	} else {
 		for _, v := range new {
-			message = fmt.Sprintf("\n%s\nA new issue is added: %s by \"%s\"", message, v.GetHTMLURL(), v.User.GetLogin())
+			if v.GetState() != "closed" {
+				message = fmt.Sprintf("\n%s\n%s issue is still open which was assigned to you by \"%s\"", message, v.GetHTMLURL(), v.User.GetLogin())
+			}
 		}
 	}
 	return message

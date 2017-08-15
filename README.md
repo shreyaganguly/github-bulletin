@@ -19,6 +19,6 @@ $ github-bulletin -github-token <github-token-that-will-fetch-the-issues> -slack
 * Give `t` value atleast more than 60 seconds.(I hope your code does not produce issues at this high rate! ;) )
 
 
-* Once the application is up, write: `Subsribe: <github-user-id>` to the slack bot registered with the server to recieve all issue tracking notifications.You can write `Unsubscribe: <github-user-id>` to unsubscribe anytime.
+* Once the application is up, write: `Subscribe: <github-user-id>` to the slack bot registered with the server to recieve all issue tracking notifications.You can write `Unsubscribe: <github-user-id>` to unsubscribe anytime.
 
 #### Send bulletins and keep you and your friends all updated! :)
